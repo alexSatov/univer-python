@@ -1,0 +1,6 @@
+GAME-LINES help
+The game will randomly place three color balls on the game board at every round, 
+you have to strategically select one ball (click on ball) and move it to the most convenient location (click on target square).
+Game goal is to arrange balls of the same colour in a straight lines (every direction). 
+5 or more balls on a straight line are removed and points are given(1 removed ball = 1 point)
+Preview panel shows colours of the next 3 balls.

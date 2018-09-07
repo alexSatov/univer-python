@@ -1,0 +1,4 @@
+board_size=10
+config=config1.txt
+player1=player
+player2=player

@@ -1,0 +1,24 @@
+########PACMAN########
+You play pacman and your job is to eat all the food on the map.
+Control:
+a - left
+d - right
+w - up
+s - down
+e - create a wall behind pacman (-200 scores)
+f - attack
+Beware of 4 ghosts:
+Blinky - red ghost
+Inky - blue ghost
+Pinky - pink ghost
+Clyde - orange ghost
+If you get one of the ghosts, he will kill you (minus one life, all lives - 3).
+You can kill the ghost with a special weapon.
+After that they go to his house to respawn.
+Once there, the ghosts come to life and begin to hunt again.
+For eating food and killing the ghosts get points.
+Forward, put the records !!!
+########SECRETCHEATS########
+god - 9999 lifes
+level2 - second level
+level3 - third level

@@ -1,0 +1,155 @@
+import re
+import sys
+from collections import defaultdict
+
+MONTHS = {"Jan": "01", "Feb": "02", "Mar": "03",
+          "Apr": "04", "May": "05", "Jun": "06",
+          "Jul": "07", "Aug": "08", "Sep": "09",
+          "Oct": "10", "Nov": "11", "Dec": "12"}
+
+
+class PageStat:
+    def __init__(self):
+        self.visits_counter = 0
+        self.time = -1
+        self.name = ""
+        self.sum_time = 0
+        self.entry_number = -1
+
+    def set_entry_number(self, numb):
+        if self.entry_number == -1:
+            self.entry_number = numb
+
+    def get_average_time(self):
+        return self.sum_time / self.visits_counter
+
+    def set_max_time(self, time, page_name=""):
+        if time >= self.time:
+            self.sum_time += time
+            self.time = time
+            self.name = page_name
+
+    def set_min_time(self, time, page_name=""):
+        if time <= self.time or self.time == -1:
+            self.time = time
+            self.name = page_name
+
+
+class Stat:
+    def __init__(self):
+        self.pages = defaultdict(PageStat)
+        self.browsers = defaultdict(int)
+        self.date_visits = {}
+        self.clients = defaultdict(int)
+        self.fastest_page = PageStat()
+        self.slowest_page = PageStat()
+
+    @staticmethod
+    def transform_date(date):
+        tokens = date.split("/")
+        return "{0}-{1}-{2}".format(tokens[2], MONTHS[tokens[1]], tokens[0])
+
+    @staticmethod
+    def get_clients_by_day(date_visits):
+        result = {}
+        for date, clients_dict in date_visits.items():
+            optimal_ip = get_max(clients_dict, lambda item: item[1])
+            result[Stat.transform_date(date)] = optimal_ip
+        return sorted(result.items(), key=lambda item: item[0])
+
+    @staticmethod
+    def get_slowest_in_average(pages):
+        sorted_pages = sorted(pages.items(),
+                              key=lambda item: item[1].entry_number)
+        result = max(sorted_pages,
+                     key=lambda item: item[1].get_average_time())
+        return result[0]
+
+    def show(self):
+        slowest_in_average = self.get_slowest_in_average(self.pages)
+        most_active_client = get_max(self.clients, lambda item: item[1])
+        popular_browser = get_max(self.browsers, lambda item: item[1])
+        popular_page = get_max(self.pages, lambda item: item[1].visits_counter)
+
+        print("FastestPage: {0}".format(self.fastest_page.name))
+        print("MostActiveClient: {0}".format(most_active_client))
+        print("MostActiveClientByDay:")
+        for key, val in self.get_clients_by_day(self.date_visits):
+            print("  {0}: {1}".format(key, val))
+
+        print("\nMostPopularBrowser: {0}".format(popular_browser))
+        print("MostPopularPage: {0}".format(popular_page))
+        print("SlowestAveragePage: {0}".format(slowest_in_average))
+        print("SlowestPage: {0}".format(self.slowest_page.name))
+
+
+def get_max(input_dict, key_selector):
+    items = sorted(input_dict.items(), key=key_selector, reverse=True)
+    result = items[0][0]
+    max_val = items[0][1]
+
+    for current_value in items:
+        if max_val != input_dict[current_value]:
+            break
+        if result > current_value:
+            result = current_value
+    return result
+
+
+def parse(log, expression):
+    result = re.match(expression, log)
+    if result is None:
+        return None
+
+    return result.groupdict()
+
+
+def get_reg_expression():
+    req_types = "GET|PUT|POST|HEAD|OPTIONS|DELETE"
+    pattern = r'(?P<user_id>(\d{1,3}\.?){4})'
+    pattern += r'.*?\[(?P<Date>.+?):.*?"(?P<req_type>{0}) '.format(req_types)
+    pattern += r'(?P<page_name>.+?) .*?" \d+? \d+? "(?P<link>.+?)"'
+    pattern += r' "(?P<user_agent>.+?)".?(?P<time>\d*)'
+    expr = re.compile(pattern)
+    return expr
+
+
+def create_stat(lines, reg_expr):
+    stat = Stat()
+    counter = 0
+    for line in lines:
+        info = parse(line.strip(), reg_expr)
+        if info is not None:
+            stat.browsers[info["user_agent"]] += 1
+            stat.clients[info["user_id"]] += 1
+
+            if info["Date"] not in stat.date_visits:
+                stat.date_visits[info["Date"]] = defaultdict(int)
+            stat.date_visits[info["Date"]][info["user_id"]] += 1
+
+            stat.pages[info["page_name"]].visits_counter += 1
+
+            if is_digit(info["time"]):
+                stat.fastest_page.set_min_time(int(info["time"]),
+                                               info["page_name"])
+
+                stat.slowest_page.set_max_time(int(info["time"]),
+                                               info["page_name"])
+
+                stat.pages[info["page_name"]].set_max_time(int(info["time"]))
+                stat.pages[info["page_name"]].set_entry_number(counter)
+            counter += 1
+
+    return stat
+
+
+def is_digit(input_str):
+    return not re.match(r'\d+', input_str) is None
+
+
+def main():
+    log_stat = create_stat(sys.stdin, get_reg_expression())
+    log_stat.show()
+
+if __name__ == '__main__':
+    sys.exit(main())
